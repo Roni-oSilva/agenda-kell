@@ -11,9 +11,9 @@ module.exports = {
         lilas: '#c8a2dc',
       },
       fontFamily: {
-        display: ['var(--font-cormorant)', 'Georgia', 'serif'],
-        sans: ['var(--font-jost)', 'system-ui', 'sans-serif'],
-        script: ['var(--font-vibes)', 'cursive'],
+        display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+        sans: ['Jost', 'system-ui', 'sans-serif'],
+        script: ['"Great Vibes"', 'cursive'],
       },
       boxShadow: {
         glass: '0 10px 30px -12px rgba(90,36,112,.28)',
