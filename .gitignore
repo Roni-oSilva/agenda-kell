@@ -8,3 +8,4 @@ tsconfig.tsbuildinfo
 preview/
 public/preview-index.html
 VER-VISUAL.bat
+vercel-env.txt
