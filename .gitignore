@@ -1,0 +1,10 @@
+.next
+node_modules
+.env
+.env.local
+tsconfig.tsbuildinfo
+.claude
+# so para ver o visual localmente
+preview/
+public/preview-index.html
+VER-VISUAL.bat
