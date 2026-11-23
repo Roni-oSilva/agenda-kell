@@ -78,11 +78,11 @@ export const BLOCKING = ['aguardando_pagamento', 'aguardando_confirmacao', 'conf
 
 export async function loadAvailability(s?: Settings) {
   const st = s ?? (await getSettings());
-  const [wh, br, bl] = await Promise.all([
-    db().from('weekly_hours').select('*'), db().from('breaks').select('*'), db().from('blocks').select('*'),
+  const [wh, br, bl, ws] = await Promise.all([
+    db().from('weekly_hours').select('*'), db().from('breaks').select('*'), db().from('blocks').select('*'), db().from('weekly_slots').select('*'),
   ]);
   const cfg: AvailabilityConfig = {
-    weeklyHours: wh.data ?? [], breaks: br.data ?? [], blocks: bl.data ?? [],
+    weeklyHours: wh.data ?? [], breaks: br.data ?? [], blocks: bl.data ?? [], weeklySlots: ws.data ?? [],
     stepMin: st.booking.slot_step_min, minNoticeHours: st.booking.min_notice_hours, maxDaysAhead: st.booking.max_days_ahead,
   };
   return cfg;

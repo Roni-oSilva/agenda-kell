@@ -238,3 +238,13 @@ end $$;
 
 -- Atualização (categorias): bancos criados antes desta versão rodam também este trecho
 alter table services add column if not exists category text not null default 'Outros';
+
+-- Horários fixos de início por dia da semana (ex.: seg 08h, 13h, 15h, 18h). Se o dia não tiver horários aqui, vale abertura/fechamento + intervalo.
+create table if not exists weekly_slots (
+  weekday integer not null check (weekday between 0 and 6),
+  slot_time time not null,
+  primary key (weekday, slot_time)
+);
+alter table weekly_slots enable row level security;
+drop policy if exists admin_all on weekly_slots;
+create policy admin_all on weekly_slots for all using (is_admin()) with check (is_admin());

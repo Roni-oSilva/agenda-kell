@@ -9,8 +9,11 @@ const WD = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábad
 const post = (json: object) => api('/api/admin/availability', { method: 'POST', json });
 
 export default function Disponibilidade() {
-  const { data, reload, error } = useApi<{ hours: H[]; breaks: Br[]; blocks: Bl[] }>('/api/admin/availability');
+  const { data, reload, error } = useApi<{ hours: H[]; breaks: Br[]; blocks: Bl[]; slots: { weekday: number; slot_time: string }[] }>('/api/admin/availability');
   const [hours, setHours] = useState<H[]>([]), [msg, setMsg] = useState(''), [ok, setOk] = useState('');
+  const [newTime, setNewTime] = useState<Record<number, string>>({});
+  const slotsOf = (wd: number) => (data?.slots ?? []).filter((x) => x.weekday === wd).map((x) => x.slot_time.slice(0, 5)).sort();
+  const saveSlots = (wd: number, times: string[]) => run(() => post({ action: 'slots', weekday: wd, times }), 'Horários do dia salvos.');
   const [br, setBr] = useState({ weekday: '', start_time: '12:00', end_time: '13:00', label: 'Almoço' });
   const [bl, setBl] = useState({ date_from: '', date_to: '', start_time: '', end_time: '', kind: 'folga', reason: '' });
   useEffect(() => { if (data) setHours(data.hours.map((h) => ({ ...h, open_time: h.open_time.slice(0, 5), close_time: h.close_time.slice(0, 5) }))); }, [data]);
@@ -22,13 +25,20 @@ export default function Disponibilidade() {
       <Msg error={msg || error} ok={ok} />
       <Card className="space-y-2">
         {hours.map((h, i) => (
-          <div key={h.weekday} className="flex flex-wrap items-center gap-2 text-sm">
-            <label className="flex w-28 items-center gap-2"><input type="checkbox" className="h-5 w-5" checked={h.active} onChange={(e) => setHours(hours.map((x, j) => (j === i ? { ...x, active: e.target.checked } : x)))} />{WD[h.weekday]}</label>
-            <input type="time" className={`${inputCls} !w-28`} value={h.open_time} onChange={(e) => setHours(hours.map((x, j) => (j === i ? { ...x, open_time: e.target.value } : x)))} />
-            <span>às</span>
-            <input type="time" className={`${inputCls} !w-28`} value={h.close_time} onChange={(e) => setHours(hours.map((x, j) => (j === i ? { ...x, close_time: e.target.value } : x)))} />
+          <div key={h.weekday} className="space-y-2 border-b border-rose-50 pb-3 text-sm last:border-0">
+            <label className="flex w-40 items-center gap-2 font-medium"><input type="checkbox" className="h-5 w-5 accent-rose-600" checked={h.active} onChange={(e) => setHours(hours.map((x, j) => (j === i ? { ...x, active: e.target.checked } : x)))} />{WD[h.weekday]}{!h.active && <span className="text-xs font-normal text-nude-700">(fechado)</span>}</label>
+            {h.active && (
+              <div className="flex flex-wrap items-center gap-2 pl-7">
+                {slotsOf(h.weekday).map((t) => (
+                  <span key={t} className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-3 py-1.5 font-medium text-rose-600">{t}<button type="button" aria-label={`Remover ${t}`} className="text-rose-400 transition hover:text-red-600" onClick={() => saveSlots(h.weekday, slotsOf(h.weekday).filter((x) => x !== t))}>×</button></span>
+                ))}
+                {slotsOf(h.weekday).length === 0 && <span className="text-xs text-nude-700">Sem horários fixos: usa abertura {h.open_time} e fechamento {h.close_time}.</span>}
+                <input type="time" className={`${inputCls} !w-28`} value={newTime[h.weekday] ?? ''} onChange={(e) => setNewTime({ ...newTime, [h.weekday]: e.target.value })} />
+                <Btn variant="ghost" disabled={!newTime[h.weekday]} onClick={() => { saveSlots(h.weekday, [...slotsOf(h.weekday), newTime[h.weekday]]); setNewTime({ ...newTime, [h.weekday]: '' }); }}>Adicionar horário</Btn>
+              </div>
+            )}
           </div>))}
-        <Btn onClick={() => run(() => post({ action: 'hours', rows: hours }), 'Horários salvos.')}>Salvar horários</Btn>
+        <Btn onClick={() => run(() => post({ action: 'hours', rows: hours }), 'Dias de funcionamento salvos.')}>Salvar dias de funcionamento</Btn>
       </Card>
 
       <Card className="space-y-2"><h2 className="font-semibold">Intervalos e pausas (almoço…)</h2>

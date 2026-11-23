@@ -36,6 +36,14 @@ describe('availability', () => {
     for (const t of r.taken) expect(r.slots).not.toContain(t);
     expect(r.taken).not.toContain('12:00'); // almoço não é "ocupado"
   });
+  it('horários fixos por dia: só aparecem os horários cadastrados e os ocupados ficam marcados', () => {
+    const fixedCfg = { ...cfg, breaks: [], weeklySlots: [8, 13, 15, 18].map((h) => ({ weekday: 1, slot_time: `${String(h).padStart(2, '0')}:00:00` })) };
+    expect(computeDay(DAY, 60, fixedCfg, [], now).slots).toEqual(['08:00', '13:00', '15:00', '18:00']);
+    const busy = [{ start: toInstant(DAY, '13:00'), end: toInstant(DAY, '15:00') }]; // atendimento de 2h às 13h
+    const r = computeDay(DAY, 60, fixedCfg, busy, now);
+    expect(r.slots).toEqual(['08:00', '15:00', '18:00']);
+    expect(r.taken).toEqual(['13:00']);
+  });
   it('dia fechado, bloqueado, passado e fora do limite', () => {
     expect(computeDay('2026-11-22', 60, cfg, [], now).status).toBe('closed');
     expect(computeDay(DAY, 60, { ...cfg, blocks: [{ date_from: DAY, date_to: DAY, start_time: null, end_time: null }] }, [], now).status).toBe('blocked');

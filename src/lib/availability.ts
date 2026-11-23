@@ -3,9 +3,12 @@ import { addDays, hmToMin, minToHm, toInstant, todayBR, weekdayOf } from './time
 export type WeeklyHour = { weekday: number; active: boolean; open_time: string; close_time: string };
 export type Break = { weekday: number | null; start_time: string; end_time: string };
 export type Block = { date_from: string; date_to: string; start_time: string | null; end_time: string | null };
+export type WeeklySlot = { weekday: number; slot_time: string };
 export type Busy = { start: Date; end: Date };
 export type AvailabilityConfig = {
   weeklyHours: WeeklyHour[]; breaks: Break[]; blocks: Block[];
+  /** horários fixos de início por dia da semana (se o dia tiver, valem no lugar de abertura/fechamento + intervalo) */
+  weeklySlots?: WeeklySlot[];
   stepMin: number; minNoticeHours: number; maxDaysAhead: number;
 };
 
@@ -34,10 +37,14 @@ export function computeDay(date: string, durationMin: number, cfg: AvailabilityC
   const un = unavailableRanges(date, cfg);
   if (un === null) return { status: 'blocked', slots: [], taken: [] };
 
-  const open = hmToMin(hours.open_time), close = hmToMin(hours.close_time);
   const earliest = now.getTime() + cfg.minNoticeHours * 3600_000;
   const slots: string[] = [], taken: string[] = [];
-  for (let m = open; m + durationMin <= close; m += cfg.stepMin) {
+  const fixed = (cfg.weeklySlots ?? []).filter((x) => x.weekday === weekdayOf(date)).map((x) => hmToMin(x.slot_time)).sort((x, y) => x - y);
+  const open = hmToMin(hours.open_time), close = hmToMin(hours.close_time);
+  const candidates: number[] = [];
+  if (fixed.length) candidates.push(...fixed);
+  else for (let m = open; m + durationMin <= close; m += cfg.stepMin) candidates.push(m);
+  for (const m of candidates) {
     if (un.some(([a, b]) => m < b && m + durationMin > a)) continue;
     const start = toInstant(date, minToHm(m));
     if (start.getTime() < earliest) continue;
