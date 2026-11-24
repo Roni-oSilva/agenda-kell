@@ -55,6 +55,7 @@ export type Settings = {
   booking: { slot_step_min: number; min_notice_hours: number; max_days_ahead: number; hold_minutes: number; pix_expiration_minutes: number; max_installments: number };
   payment_methods: { pix: boolean; card: boolean; cash: boolean };
   policy: { text: string };
+  pix_manual: { enabled: boolean; key: string; key_type: 'cpf' | 'cnpj' | 'phone' | 'email' | 'random'; holder: string; city: string };
   whatsapp: { enabled: boolean; confirmation: boolean; reminder_24h: boolean; reminder_2h: boolean; waitlist: boolean; followup: boolean; language: string; templates: Record<string, string> };
 };
 const DEFAULTS = {
@@ -62,6 +63,7 @@ const DEFAULTS = {
   booking: { slot_step_min: 30, min_notice_hours: 2, max_days_ahead: 60, hold_minutes: 15, pix_expiration_minutes: 30, max_installments: 3 },
   payment_methods: { pix: true, card: true, cash: true },
   policy: { text: 'O sinal garante a reserva do horário. Em caso de cancelamento pela cliente, o sinal não é devolvido. Se o cancelamento for feito pela profissional, entraremos em contato para resolver a situação.' },
+  pix_manual: { enabled: false, key: '', key_type: 'phone', holder: '', city: '' },
   whatsapp: { enabled: true, confirmation: true, reminder_24h: true, reminder_2h: false, waitlist: true, followup: true, language: 'pt_BR', templates: { confirmation: 'confirmacao_agendamento', reminder_24h: 'lembrete_24h', reminder_2h: 'lembrete_2h', waitlist: 'vaga_disponivel', followup: 'retorno_manutencao' } },
 };
 export async function getSettings(): Promise<Settings> {

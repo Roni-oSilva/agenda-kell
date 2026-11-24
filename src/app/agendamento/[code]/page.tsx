@@ -3,14 +3,14 @@ import { use, useEffect, useState } from 'react';
 import { api, Btn, Card, Field, inputCls, METHOD_LABEL, Msg, STATUS_LABEL, useApi } from '@/lib/client';
 import { brl, fmtDateBR, fmtTimeBR } from '@/lib/time';
 
-type Pay = { id: string; method: string; kind: string; status: string; amount_cents: number; pix_qr_code: string | null; pix_qr_base64: string | null; expires_at: string | null };
+type Pay = { id: string; provider: string; method: string; kind: string; status: string; amount_cents: number; pix_qr_code: string | null; pix_qr_base64: string | null; expires_at: string | null };
 type B = { code: string; name: string; service_name: string; start_at: string; end_at: string; status: string; total_cents: number; deposit_cents: number; paid_cents: number; balance_cents: number; hold_expires_at: string | null; cancel_reason: string | null; policy: string; contact: string; payments: Pay[] };
 
 export default function Booking({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params);
   const [poll, setPoll] = useState(0);
   const { data: b, error } = useApi<B>(`/api/bookings/${code}`, [poll]);
-  const [pix, setPix] = useState<{ qr: string; qrBase64: string; expires_at: string } | null>(null);
+  const [pix, setPix] = useState<{ qr: string; qrBase64: string; expires_at: string; manual?: boolean; holder?: string } | null>(null);
   const [payFull, setPayFull] = useState(false);
   const [msg, setMsg] = useState(''), [ok, setOk] = useState(''), [busy, setBusy] = useState(false);
   const [cancel, setCancel] = useState(false), [c, setC] = useState({ last4: '', reason: '' });
@@ -19,15 +19,17 @@ export default function Booking({ params }: { params: Promise<{ code: string }> 
 
   // atualiza o status enquanto aguarda pagamento (confirmação automática vem do webhook/consulta ao provedor)
   useEffect(() => {
-    if (b?.status !== 'aguardando_pagamento') return;
+    if (b?.status !== 'aguardando_pagamento' && b?.status !== 'aguardando_confirmacao') return;
     const t = setInterval(() => { setPoll((x) => x + 1); setNow(Date.now()); }, 5000);
     return () => clearInterval(t);
   }, [b?.status]);
 
-  const activePix = pix ?? (() => { const p = b?.payments.find((x) => x.method === 'pix' && x.status === 'pendente' && x.pix_qr_code); return p ? { qr: p.pix_qr_code!, qrBase64: p.pix_qr_base64!, expires_at: p.expires_at! } : null; })();
+  const activePix = pix ?? (() => { const p = b?.payments.find((x) => x.method === 'pix' && x.status === 'pendente' && x.pix_qr_code); return p ? { qr: p.pix_qr_code!, qrBase64: p.pix_qr_base64!, expires_at: p.expires_at!, manual: p.provider === 'manual' } : null; })();
+  const manualPending = !!b?.payments.some((x) => x.provider === 'manual' && x.status === 'pendente');
 
   async function run(fn: () => Promise<void>) { setBusy(true); setMsg(''); try { await fn(); } catch (e) { setMsg((e as Error).message); } setBusy(false); }
   const doPix = () => run(async () => { setPix(await api(`/api/bookings/${code}/pix`, { method: 'POST', json: { payFull } })); });
+  const doPaid = () => run(async () => { await api(`/api/bookings/${code}/paid`, { method: 'POST', json: {} }); setPix(null); setPoll((x) => x + 1); });
   const doCard = () => run(async () => { const r = await api<{ url: string }>(`/api/bookings/${code}/checkout`, { method: 'POST', json: { payFull } }); window.location.href = r.url; });
   const doCancel = () => run(async () => { await api(`/api/bookings/${code}/cancel`, { method: 'POST', json: { phoneLast4: c.last4, reason: c.reason } }); setCancel(false); setOk('Agendamento cancelado.'); setPoll((x) => x + 1); });
 
@@ -81,7 +83,13 @@ export default function Booking({ params }: { params: Promise<{ code: string }> 
               <img alt="QR Code PIX" className="mx-auto h-52 w-52" src={`data:image/png;base64,${activePix.qrBase64}`} />
               <textarea readOnly className={`${inputCls} h-24 py-2 text-xs`} value={activePix.qr} onFocus={(e) => e.currentTarget.select()} />
               <Btn variant="ghost" onClick={() => navigator.clipboard.writeText(activePix.qr).then(() => setOk('Código copiado!'))}>Copiar código PIX</Btn>
-              <p className="text-xs text-nude-700">Válido até {fmtTimeBR(activePix.expires_at)}. A confirmação é automática após o pagamento — não precisa enviar comprovante.</p>
+              {activePix.manual ? (
+                <div className="space-y-2 text-left">
+                  <p className="rounded-2xl bg-rose-50 px-3 py-2 text-xs text-nude-700">Abra o app do seu banco, escolha <b>PIX copia e cola</b> (ou leia o QR code) e confirme o valor. O código já traz o valor e o seu código de reserva <b>{b.code}</b>. Depois de pagar, toque no botão abaixo.</p>
+                  <Btn onClick={doPaid} disabled={busy} className="w-full">Já fiz o pagamento</Btn>
+                  <p className="text-center text-xs text-nude-700">Horário segurado até {fmtTimeBR(activePix.expires_at)}. Quem confirma o recebimento é a profissional, não precisa enviar comprovante.</p>
+                </div>
+              ) : <p className="text-xs text-nude-700">Válido até {fmtTimeBR(activePix.expires_at)}. A confirmação é automática após o pagamento — não precisa enviar comprovante.</p>}
             </div>
           ) : (
             <div className="space-y-2">
@@ -93,6 +101,14 @@ export default function Booking({ params }: { params: Promise<{ code: string }> 
           )}
           <Msg error={msg} ok={ok} />
           {b.payments.some((p) => p.status === 'recusado') && <p className="text-sm text-red-700">Um pagamento foi recusado. Você pode tentar novamente acima.</p>}
+        </Card>
+      )}
+
+      {b.status === 'aguardando_confirmacao' && manualPending && (
+        <Card className="animate-fadeUp space-y-1 border-ouro/40 text-sm">
+          <p className="font-display text-2xl font-semibold text-rose-600">Pagamento informado</p>
+          <p className="text-nude-700">Seu horário está <b>reservado</b>. Assim que a profissional conferir o PIX na conta, ele será confirmado. Esta página atualiza sozinha.</p>
+          {b.contact && <p className="text-xs text-nude-700">Dúvidas? Fale com a profissional: {b.contact}</p>}
         </Card>
       )}
 

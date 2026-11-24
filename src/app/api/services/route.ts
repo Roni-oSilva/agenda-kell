@@ -11,7 +11,9 @@ export const GET = handle(async () => {
     deposit_required: x.deposit_required, deposit_cents: depositFor(x as Service),
   }));
   return NextResponse.json({
-    services, studio: s.studio, policy: s.policy.text, payment_methods: s.payment_methods,
+    services, studio: s.studio, policy: s.policy.text,
+    // PIX: Mercado Pago (se configurado) ou chave PIX da profissional; cartão só existe com Mercado Pago
+    payment_methods: { pix: s.payment_methods.pix && (!!process.env.MP_ACCESS_TOKEN || (s.pix_manual.enabled && !!s.pix_manual.key)), card: s.payment_methods.card && !!process.env.MP_ACCESS_TOKEN, cash: s.payment_methods.cash },
     max_days_ahead: s.booking.max_days_ahead, hold_minutes: s.booking.hold_minutes,
   });
 });

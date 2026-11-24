@@ -15,7 +15,7 @@ export const GET = handle(async (_req: NextRequest, ctx: { params: Promise<{ cod
     for (const p of pend ?? []) { try { await syncMpPayment(p.provider_payment_id!); } catch { /* tenta de novo no próximo poll */ } }
     b = (await db().from('bookings').select('*, customers(name)').eq('id', b.id).single()).data!;
   }
-  const { data: pays } = await db().from('payments').select('id,method,kind,status,amount_cents,pix_qr_code,pix_qr_base64,expires_at,paid_at').eq('booking_id', b.id).order('created_at', { ascending: false });
+  const { data: pays } = await db().from('payments').select('id,provider,method,kind,status,amount_cents,pix_qr_code,pix_qr_base64,expires_at,paid_at').eq('booking_id', b.id).order('created_at', { ascending: false });
   const s = await getSettings();
   return NextResponse.json({
     code: b.public_code, name: b.customers?.name, service_name: b.service_name, start_at: b.start_at, end_at: b.end_at, status: b.status,

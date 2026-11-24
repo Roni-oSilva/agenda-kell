@@ -11,7 +11,7 @@ export const GET = handle(async (req: NextRequest) => {
   await db().rpc('expire_holds');
   const q = req.nextUrl.searchParams;
   const from = q.get('from'), to = q.get('to'), status = q.get('status'), cust = q.get('customer');
-  let query = db().from('bookings').select('*, customers(id,name,phone_e164)').order('start_at').limit(1000);
+  let query = db().from('bookings').select('*, customers(id,name,phone_e164), payments(id,status,kind,amount_cents,method,provider)').order('start_at').limit(1000);
   if (from) query = query.gte('start_at', toInstant(from, '00:00').toISOString());
   if (to) query = query.lt('start_at', toInstant(addDays(to, 1), '00:00').toISOString());
   if (status) query = query.eq('status', status);

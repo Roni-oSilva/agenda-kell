@@ -18,6 +18,12 @@ export function depositFor(s: Pick<Service, 'price_cents' | 'deposit_mode' | 'de
   }
 }
 
+/** Há como pagar online? PIX na chave da profissional (configurada) ou Mercado Pago. Se não, a reserva vai para confirmação manual. */
+function payOnlineAvailable(s: Awaited<ReturnType<typeof getSettings>>): boolean {
+  const mp = !!process.env.MP_ACCESS_TOKEN;
+  return (s.payment_methods.pix && (mp || (s.pix_manual.enabled && !!s.pix_manual.key))) || (s.payment_methods.card && mp);
+}
+
 export async function upsertCustomer(name: string, rawPhone: string, consent: boolean, extra: { cpf?: string; email?: string } = {}) {
   const cpf = extra.cpf ? extra.cpf.replace(/\D/g, '') : undefined;
   if (cpf && !isValidCpf(cpf)) throw new HttpError(400, 'CPF inválido.');
@@ -66,7 +72,7 @@ export async function createBooking(i: CreateInput) {
 
   const customer = await upsertCustomer(i.name, i.phone, i.consent, { cpf: i.cpf, email: i.email });
   const deposit = depositFor(service);
-  const needsPayment = i.actor === 'cliente' && service.deposit_required && deposit > 0 && (settings.payment_methods.pix || settings.payment_methods.card);
+  const needsPayment = i.actor === 'cliente' && service.deposit_required && deposit > 0 && payOnlineAvailable(settings);
   const hold = new Date(Date.now() + settings.booking.hold_minutes * 60_000);
 
   const { data: b, error } = await db().from('bookings').insert({

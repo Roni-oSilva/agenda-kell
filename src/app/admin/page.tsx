@@ -4,7 +4,7 @@ import { api, Btn, Card, Field, inputCls, METHOD_LABEL, Msg, STATUS_LABEL, useAp
 import { addDays, brl, dateOfInstant, fmtTimeBR, todayBR, weekdayOf } from '@/lib/time';
 import { shiftMonth } from '@/components/Calendar';
 
-type B = { id: string; public_code: string; service_name: string; start_at: string; end_at: string; status: string; total_cents: number; paid_cents: number; deposit_cents: number; notes: string | null; customers: { id: string; name: string; phone_e164: string } };
+type B = { id: string; public_code: string; service_name: string; start_at: string; end_at: string; status: string; total_cents: number; paid_cents: number; deposit_cents: number; notes: string | null; customers: { id: string; name: string; phone_e164: string }; payments?: { id: string; status: string; kind: string; amount_cents: number; method: string; provider: string }[] };
 const WD = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const STATUS_COLOR: Record<string, string> = { confirmado: 'bg-green-100 text-green-800', aguardando_pagamento: 'bg-amber-100 text-amber-800', aguardando_confirmacao: 'bg-amber-100 text-amber-800', em_atendimento: 'bg-blue-100 text-blue-800', concluido: 'bg-nude-100 text-nude-700', cancelado: 'bg-red-100 text-red-700', nao_compareceu: 'bg-red-100 text-red-700' };
 
@@ -14,18 +14,27 @@ function BookingRow({ b, reload }: { b: B; reload: () => void }) {
   const [pay, setPay] = useState({ method: 'pix', value: ((b.total_cents - b.paid_cents) / 100).toFixed(2) });
   const [reason, setReason] = useState('');
   const balance = b.total_cents - b.paid_cents;
+  const pendingPix = (b.payments ?? []).find((x) => x.provider === 'manual' && x.status === 'pendente');
+  const awaitingMoney = ['aguardando_pagamento', 'aguardando_confirmacao'].includes(b.status) && b.deposit_cents > 0;
+  const needsPix = awaitingMoney && !!pendingPix;
   async function act(fn: () => Promise<unknown>, done: string) { setMsg(''); setOk(''); try { await fn(); setOk(done); reload(); } catch (e) { setMsg((e as Error).message); } }
   const patch = (json: object) => api(`/api/admin/bookings/${b.id}`, { method: 'PATCH', json });
   return (
     <Card className="!p-3">
       <button className="flex w-full items-center justify-between gap-2 text-left" onClick={() => setOpen(!open)}>
         <span><b>{fmtTimeBR(b.start_at)}–{fmtTimeBR(b.end_at)}</b> · {b.customers.name} · {b.service_name}</span>
-        <span className={`shrink-0 rounded-full px-2 py-1 text-xs ${STATUS_COLOR[b.status]}`}>{STATUS_LABEL[b.status]}</span>
+        <span className={`shrink-0 rounded-full px-2 py-1 text-xs ${STATUS_COLOR[b.status]}`}>{needsPix && b.status === 'aguardando_confirmacao' ? 'Confirmar PIX' : STATUS_LABEL[b.status]}</span>
       </button>
       {open && (
         <div className="mt-3 space-y-3 border-t border-rose-100 pt-3 text-sm">
           <p>WhatsApp: <a className="text-rose-600 underline" href={`https://wa.me/${b.customers.phone_e164}`} target="_blank" rel="noreferrer">{b.customers.phone_e164}</a> · Código {b.public_code}</p>
           <p>Total {brl(b.total_cents)} · Sinal {brl(b.deposit_cents)} · Recebido {brl(b.paid_cents)} · <b>Saldo {brl(balance)}</b></p>
+          {awaitingMoney && (
+            <div className={`flex flex-wrap items-center justify-between gap-2 rounded-2xl p-3 ${b.status === 'aguardando_confirmacao' ? 'border border-amber-300 bg-amber-50' : 'bg-rose-50'}`}>
+              <span>{b.status === 'aguardando_confirmacao' ? <b>A cliente informou que pagou o PIX.</b> : <b>Aguardando o PIX do sinal.</b>} Confira o valor de <b>{brl(pendingPix?.amount_cents ?? b.deposit_cents)}</b> na sua conta (código {b.public_code}) e confirme.</span>
+              <Btn onClick={() => confirm(`Confirmar que ${brl(pendingPix?.amount_cents ?? b.deposit_cents)} caiu na sua conta?`) && act(() => api(`/api/admin/bookings/${b.id}/confirm-payment`, { method: 'POST', json: {} }), 'Pagamento confirmado e reserva confirmada.')}>Confirmar recebimento</Btn>
+            </div>
+          )}
           <div className="flex flex-wrap gap-2">
             <select className={`${inputCls} !w-auto`} value={b.status} onChange={(e) => e.target.value !== 'cancelado' && act(() => patch({ status: e.target.value }), 'Status atualizado.')}>
               {Object.entries(STATUS_LABEL).filter(([k]) => k !== 'cancelado' || b.status === 'cancelado').map(([k, v]) => <option key={k} value={k}>{v}</option>)}

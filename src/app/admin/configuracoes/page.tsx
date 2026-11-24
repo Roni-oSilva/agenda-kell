@@ -6,6 +6,7 @@ type S = {
   studio: { name: string; whatsapp_contact: string };
   booking: { slot_step_min: number; min_notice_hours: number; max_days_ahead: number; hold_minutes: number; pix_expiration_minutes: number; max_installments: number };
   payment_methods: { pix: boolean; card: boolean; cash: boolean };
+  pix_manual: { enabled: boolean; key: string; key_type: 'cpf' | 'cnpj' | 'phone' | 'email' | 'random'; holder: string; city: string };
   policy: { text: string };
   whatsapp: { enabled: boolean; confirmation: boolean; reminder_24h: boolean; reminder_2h: boolean; waitlist: boolean; followup: boolean; language: string; templates: Record<string, string> };
 };
@@ -28,6 +29,16 @@ export default function Config() {
         <Field label="Nome"><input className={inputCls} value={s.studio.name} onChange={(e) => setS({ ...s, studio: { ...s.studio, name: e.target.value } })} /></Field>
         <Field label="WhatsApp de contato (mostrado à cliente)"><input className={inputCls} inputMode="tel" value={s.studio.whatsapp_contact} onChange={(e) => setS({ ...s, studio: { ...s.studio, whatsapp_contact: e.target.value } })} /></Field>
         <Btn onClick={() => save('studio')}>Salvar</Btn></Card>
+      <Card className="space-y-3"><h2 className="font-semibold">PIX para receber o sinal (direto na sua conta)</h2>
+        <p className="text-xs text-nude-700">A cliente paga pelo app do banco e você confirma o recebimento na Agenda. O código PIX já sai com o valor e o código da reserva. Sem Mercado Pago, só PIX (sem cartão).</p>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5 accent-rose-600" checked={s.pix_manual.enabled} onChange={(e) => setS({ ...s, pix_manual: { ...s.pix_manual, enabled: e.target.checked } })} />Receber sinal por PIX na minha chave</label>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Tipo da chave"><select className={inputCls} value={s.pix_manual.key_type} onChange={(e) => setS({ ...s, pix_manual: { ...s.pix_manual, key_type: e.target.value as S['pix_manual']['key_type'] } })}><option value="phone">Celular</option><option value="cpf">CPF</option><option value="cnpj">CNPJ</option><option value="email">E-mail</option><option value="random">Chave aleatória</option></select></Field>
+          <Field label="Chave PIX"><input className={inputCls} value={s.pix_manual.key} onChange={(e) => setS({ ...s, pix_manual: { ...s.pix_manual, key: e.target.value } })} /></Field>
+          <Field label="Nome do recebedor (como no banco)"><input className={inputCls} maxLength={25} value={s.pix_manual.holder} onChange={(e) => setS({ ...s, pix_manual: { ...s.pix_manual, holder: e.target.value } })} /></Field>
+          <Field label="Cidade"><input className={inputCls} maxLength={15} value={s.pix_manual.city} onChange={(e) => setS({ ...s, pix_manual: { ...s.pix_manual, city: e.target.value } })} /></Field>
+        </div>
+        <Btn onClick={() => save('pix_manual')}>Salvar PIX</Btn></Card>
       <Card className="space-y-3"><h2 className="font-semibold">Regras de agendamento</h2>
         <div className="grid gap-3 sm:grid-cols-2">{BOOK.map(([k, l]) => <Field key={k} label={l}><input type="number" className={inputCls} value={s.booking[k]} onChange={(e) => setS({ ...s, booking: { ...s.booking, [k]: +e.target.value } })} /></Field>)}</div>
         <Btn onClick={() => save('booking')}>Salvar</Btn></Card>
