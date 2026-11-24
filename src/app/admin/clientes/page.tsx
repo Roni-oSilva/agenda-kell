@@ -2,8 +2,9 @@
 import { useEffect, useState } from 'react';
 import { api, Btn, Card, Field, inputCls, Msg, STATUS_LABEL, useApi } from '@/lib/client';
 import { brl, fmtDateBR } from '@/lib/time';
+import { formatCpf } from '@/lib/cpf';
 
-type C = { id: string; name: string; phone_e164: string; visits: number; last_visit: string | null; next_booking: string | null; total_spent_cents: number };
+type C = { id: string; name: string; phone_e164: string; cpf?: string | null; email?: string | null; visits: number; last_visit: string | null; next_booking: string | null; total_spent_cents: number };
 type Detail = { customer: C; profile: Record<string, string | null> | null; bookings: { id: string; service_name: string; start_at: string; status: string; total_cents: number; paid_cents: number }[] };
 const FIELDS: [string, string][] = [['nail_preferences', 'Preferências de unhas'], ['shape', 'Formato desejado'], ['length', 'Tamanho'], ['decoration', 'Preferências de decoração'], ['allergies', 'Alergias (informadas voluntariamente)'], ['notes', 'Observações']];
 
@@ -35,7 +36,7 @@ export default function Clientes() {
       {data?.customers.map((c) => (
         <Card key={c.id} className="!p-3 text-sm">
           <button className="w-full text-left" onClick={() => setOpen(open === c.id ? null : c.id)}>
-            <b>{c.name}</b> · {c.phone_e164}<br />
+            <b>{c.name}</b> · {c.phone_e164}{c.cpf ? ` · CPF ${formatCpf(c.cpf)}` : ''}{c.email ? ` · ${c.email}` : ""}<br />
             <span className="text-nude-700">{c.visits} visita(s) · último {c.last_visit ? fmtDateBR(c.last_visit) : '—'} · próximo {c.next_booking ? fmtDateBR(c.next_booking) : '—'} · total pago {brl(c.total_spent_cents)}</span>
           </button>
           {open === c.id && <Ficha id={c.id} />}

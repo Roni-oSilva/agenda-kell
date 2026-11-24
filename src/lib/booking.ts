@@ -1,6 +1,7 @@
 import 'server-only';
 import { db, getSettings, HttpError, slotsFor, audit } from './server';
 import { toInstant, normalizePhone, dateOfInstant } from './time';
+import { isValidCpf } from './cpf';
 import { queueConfirmation } from './notify';
 
 export type Service = {
@@ -17,16 +18,23 @@ export function depositFor(s: Pick<Service, 'price_cents' | 'deposit_mode' | 'de
   }
 }
 
-export async function upsertCustomer(name: string, rawPhone: string, consent: boolean) {
+export async function upsertCustomer(name: string, rawPhone: string, consent: boolean, extra: { cpf?: string; email?: string } = {}) {
+  const cpf = extra.cpf ? extra.cpf.replace(/\D/g, '') : undefined;
+  if (cpf && !isValidCpf(cpf)) throw new HttpError(400, 'CPF inválido.');
+  const email = extra.email?.trim().toLowerCase() || undefined;
   const phone = normalizePhone(rawPhone);
   if (!phone) throw new HttpError(400, 'WhatsApp inválido. Informe DDD + número.');
   // recorrente = mesmo telefone: nunca duplica cadastro
   const { data: existing } = await db().from('customers').select('*').eq('phone_e164', phone).maybeSingle();
   if (existing) {
-    if (consent && !existing.whatsapp_consent) await db().from('customers').update({ whatsapp_consent: true }).eq('id', existing.id);
-    return { ...existing, whatsapp_consent: existing.whatsapp_consent || consent };
+    const patch: Record<string, unknown> = {};
+    if (consent && !existing.whatsapp_consent) patch.whatsapp_consent = true;
+    if (cpf && cpf !== existing.cpf) patch.cpf = cpf;
+    if (email && email !== existing.email) patch.email = email;
+    if (Object.keys(patch).length) await db().from('customers').update(patch).eq('id', existing.id);
+    return { ...existing, ...patch, whatsapp_consent: existing.whatsapp_consent || consent };
   }
-  const { data, error } = await db().from('customers').insert({ name: name.trim(), phone_e164: phone, whatsapp_consent: consent }).select('*').single();
+  const { data, error } = await db().from('customers').insert({ name: name.trim(), phone_e164: phone, whatsapp_consent: consent, cpf: cpf ?? null, email: email ?? null }).select('*').single();
   if (error?.code === '23505') { // corrida entre duas requisições do mesmo telefone
     const { data: again } = await db().from('customers').select('*').eq('phone_e164', phone).single();
     return again!;
@@ -37,7 +45,7 @@ export async function upsertCustomer(name: string, rawPhone: string, consent: bo
 
 export type CreateInput = {
   serviceId: string; date: string; time: string; name: string; phone: string; consent: boolean;
-  policyAccepted: boolean; actor: 'cliente' | 'admin'; notes?: string;
+  policyAccepted: boolean; actor: 'cliente' | 'admin'; notes?: string; cpf?: string; email?: string;
 };
 
 export async function createBooking(i: CreateInput) {
@@ -56,7 +64,7 @@ export async function createBooking(i: CreateInput) {
   const end = new Date(start.getTime() + service.duration_min * 60_000);
   if (i.actor === 'cliente' && start.getTime() < Date.now()) throw new HttpError(400, 'Data no passado.');
 
-  const customer = await upsertCustomer(i.name, i.phone, i.consent);
+  const customer = await upsertCustomer(i.name, i.phone, i.consent, { cpf: i.cpf, email: i.email });
   const deposit = depositFor(service);
   const needsPayment = i.actor === 'cliente' && service.deposit_required && deposit > 0 && (settings.payment_methods.pix || settings.payment_methods.card);
   const hold = new Date(Date.now() + settings.booking.hold_minutes * 60_000);

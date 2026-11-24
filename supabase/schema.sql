@@ -248,3 +248,7 @@ create table if not exists weekly_slots (
 alter table weekly_slots enable row level security;
 drop policy if exists admin_all on weekly_slots;
 create policy admin_all on weekly_slots for all using (is_admin()) with check (is_admin());
+
+-- Dados extras da cliente (CPF e e-mail) para cadastro e pagamento
+alter table customers add column if not exists cpf text;
+alter table customers add column if not exists email text;

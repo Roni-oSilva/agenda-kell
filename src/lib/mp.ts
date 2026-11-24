@@ -20,7 +20,7 @@ async function mp(path: string, init: RequestInit & { idem?: string } = {}) {
 const siteUrl = () => (process.env.NEXT_PUBLIC_SITE_URL ?? '').replace(/\/$/, '');
 const brIso = (d: Date) => new Date(d.getTime() - 3 * 3600_000).toISOString().replace('Z', '-03:00');
 
-export async function createPix(a: { bookingId: string; code: string; amountCents: number; description: string; payerName: string; payerEmail?: string; expiresInMin: number }) {
+export async function createPix(a: { bookingId: string; code: string; amountCents: number; description: string; payerName: string; payerEmail?: string | null; payerCpf?: string | null; expiresInMin: number }) {
   const email = a.payerEmail || process.env.MP_FALLBACK_PAYER_EMAIL;
   if (!email) throw new HttpError(503, 'Informe um e-mail (ou configure MP_FALLBACK_PAYER_EMAIL) — o Mercado Pago exige e-mail do pagador no PIX.');
   const expires = new Date(Date.now() + a.expiresInMin * 60_000);
@@ -28,7 +28,7 @@ export async function createPix(a: { bookingId: string; code: string; amountCent
     method: 'POST', idem: crypto.randomUUID(),
     body: JSON.stringify({
       transaction_amount: a.amountCents / 100, description: a.description, payment_method_id: 'pix',
-      payer: { email, first_name: a.payerName.split(' ')[0] }, external_reference: a.bookingId,
+      payer: { email, first_name: a.payerName.split(' ')[0], ...(a.payerCpf ? { identification: { type: 'CPF', number: a.payerCpf } } : {}) }, external_reference: a.bookingId,
       notification_url: `${siteUrl()}/api/webhooks/mercadopago`, date_of_expiration: brIso(expires),
     }),
   });

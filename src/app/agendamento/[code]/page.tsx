@@ -11,7 +11,7 @@ export default function Booking({ params }: { params: Promise<{ code: string }> 
   const [poll, setPoll] = useState(0);
   const { data: b, error } = useApi<B>(`/api/bookings/${code}`, [poll]);
   const [pix, setPix] = useState<{ qr: string; qrBase64: string; expires_at: string } | null>(null);
-  const [payFull, setPayFull] = useState(false), [email, setEmail] = useState('');
+  const [payFull, setPayFull] = useState(false);
   const [msg, setMsg] = useState(''), [ok, setOk] = useState(''), [busy, setBusy] = useState(false);
   const [cancel, setCancel] = useState(false), [c, setC] = useState({ last4: '', reason: '' });
   const [now, setNow] = useState(Date.now());
@@ -27,7 +27,7 @@ export default function Booking({ params }: { params: Promise<{ code: string }> 
   const activePix = pix ?? (() => { const p = b?.payments.find((x) => x.method === 'pix' && x.status === 'pendente' && x.pix_qr_code); return p ? { qr: p.pix_qr_code!, qrBase64: p.pix_qr_base64!, expires_at: p.expires_at! } : null; })();
 
   async function run(fn: () => Promise<void>) { setBusy(true); setMsg(''); try { await fn(); } catch (e) { setMsg((e as Error).message); } setBusy(false); }
-  const doPix = () => run(async () => { setPix(await api(`/api/bookings/${code}/pix`, { method: 'POST', json: { payFull, email: email || undefined } })); });
+  const doPix = () => run(async () => { setPix(await api(`/api/bookings/${code}/pix`, { method: 'POST', json: { payFull } })); });
   const doCard = () => run(async () => { const r = await api<{ url: string }>(`/api/bookings/${code}/checkout`, { method: 'POST', json: { payFull } }); window.location.href = r.url; });
   const doCancel = () => run(async () => { await api(`/api/bookings/${code}/cancel`, { method: 'POST', json: { phoneLast4: c.last4, reason: c.reason } }); setCancel(false); setOk('Agendamento cancelado.'); setPoll((x) => x + 1); });
 
@@ -86,7 +86,6 @@ export default function Booking({ params }: { params: Promise<{ code: string }> 
           ) : (
             <div className="space-y-2">
               {pub?.payment_methods.pix && (<>
-                <Field label="E-mail (para o comprovante do PIX)"><input type="email" className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} placeholder="opcional" /></Field>
                 <Btn onClick={doPix} disabled={busy} className="w-full">Pagar com PIX</Btn>
               </>)}
               {pub?.payment_methods.card && <Btn variant="ghost" onClick={doCard} disabled={busy} className="w-full">Pagar com cartão (crédito/débito)</Btn>}
