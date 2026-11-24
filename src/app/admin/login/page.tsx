@@ -17,7 +17,7 @@ export default function Login() {
     <main className="mx-auto max-w-sm px-4 py-16">
       <div className="mb-6 animate-fadeUp"><Brand name="Painel" small /></div>
       <form onSubmit={submit} className="animate-slideUp"><Card className="space-y-3">
-        <h1 className="text-3xl font-semibold text-rose-600">Entrar</h1>
+        <h1 className="font-display text-4xl font-semibold text-rose-600">Entrar</h1>
         <Field label="E-mail"><input type="email" required className={inputCls} value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" /></Field>
         <Field label="Senha"><input type="password" required className={inputCls} value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" /></Field>
         <Msg error={err} /><Btn type="submit" disabled={busy} className="w-full">Entrar</Btn>

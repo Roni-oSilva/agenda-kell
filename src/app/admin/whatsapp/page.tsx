@@ -12,7 +12,7 @@ export default function WhatsApp() {
   async function run(fn: () => Promise<{ ok: boolean; error?: string }>) { setMsg(''); setOk(''); try { const r = await fn(); r.ok ? setOk('Enviado.') : setMsg(r.error ?? 'Falhou'); } catch (e) { setMsg((e as Error).message); } reload(); }
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-semibold text-rose-600">WhatsApp — histórico e automações</h1>
+      <h1 className="font-display text-4xl font-semibold text-rose-600">WhatsApp — histórico e automações</h1>
       <p className="text-sm text-nude-700">As mensagens automáticas (confirmação, lembretes, lista de espera, retorno) são enviadas pelas tarefas agendadas do servidor, mesmo com o painel fechado. Ative/desative e ajuste os templates em Configurações.</p>
       <Msg error={msg || error} ok={ok} />
       <Card className="space-y-2"><h2 className="font-semibold">Mensagem manual</h2>

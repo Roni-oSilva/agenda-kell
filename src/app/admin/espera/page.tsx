@@ -8,7 +8,7 @@ export default function Espera() {
   const set = async (id: string, status: string) => { await api('/api/admin/waitlist', { method: 'PATCH', json: { id, status } }); reload(); };
   return (
     <div className="space-y-3">
-      <h1 className="text-3xl font-semibold text-rose-600">Lista de espera</h1>
+      <h1 className="font-display text-4xl font-semibold text-rose-600">Lista de espera</h1>
       <p className="text-sm text-nude-700">Quando surge vaga compatível, a cliente recebe um aviso por WhatsApp e precisa confirmar sozinha pelo link — nada é reservado automaticamente.</p>
       <Msg error={error} />
       {data?.waitlist.map((w) => (

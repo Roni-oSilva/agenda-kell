@@ -52,7 +52,7 @@ export async function audit(actor: string, action: string, entity: string, entit
 // ---------- configurações ----------
 export type Settings = {
   studio: { name: string; whatsapp_contact: string };
-  booking: { slot_step_min: number; min_notice_hours: number; max_days_ahead: number; hold_minutes: number; pix_expiration_minutes: number; max_installments: number };
+  booking: { slot_step_min: number; min_notice_hours: number; max_days_ahead: number; hold_minutes: number; pix_expiration_minutes: number; max_installments: number; auto_accept: boolean };
   payment_methods: { pix: boolean; card: boolean; cash: boolean };
   policy: { text: string };
   pix_manual: { enabled: boolean; key: string; key_type: 'cpf' | 'cnpj' | 'phone' | 'email' | 'random'; holder: string; city: string };
@@ -60,7 +60,7 @@ export type Settings = {
 };
 const DEFAULTS = {
   studio: { name: 'Nail Designer', whatsapp_contact: '' },
-  booking: { slot_step_min: 30, min_notice_hours: 2, max_days_ahead: 60, hold_minutes: 15, pix_expiration_minutes: 30, max_installments: 3 },
+  booking: { slot_step_min: 30, min_notice_hours: 2, max_days_ahead: 60, hold_minutes: 15, pix_expiration_minutes: 30, max_installments: 3, auto_accept: false },
   payment_methods: { pix: true, card: true, cash: true },
   policy: { text: 'O sinal garante a reserva do horário. Em caso de cancelamento pela cliente, o sinal não é devolvido. Se o cancelamento for feito pela profissional, entraremos em contato para resolver a situação.' },
   pix_manual: { enabled: false, key: '', key_type: 'phone', holder: '', city: '' },

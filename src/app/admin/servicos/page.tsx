@@ -50,7 +50,7 @@ export default function Servicos() {
   const [edit, setEdit] = useState<S | null>(null);
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between"><h1 className="text-3xl font-semibold text-rose-600">Procedimentos</h1><Btn onClick={() => setEdit(EMPTY)}>+ Novo</Btn></div>
+      <div className="flex items-center justify-between"><h1 className="font-display text-4xl font-semibold text-rose-600">Procedimentos</h1><Btn onClick={() => setEdit(EMPTY)}>+ Novo</Btn></div>
       <Msg error={error} />
       {edit && <Editor key={edit.id ?? 'new'} init={edit} done={() => { setEdit(null); reload(); }} />}
       {data?.services.map((s) => (

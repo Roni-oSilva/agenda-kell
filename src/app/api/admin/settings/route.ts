@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 
 const Schemas = {
   studio: z.object({ name: z.string().min(1).max(80), whatsapp_contact: z.string().max(30) }),
-  booking: z.object({ slot_step_min: z.number().int().min(5).max(120), min_notice_hours: z.number().min(0).max(720), max_days_ahead: z.number().int().min(1).max(365), hold_minutes: z.number().int().min(5).max(120), pix_expiration_minutes: z.number().int().min(30).max(1440), max_installments: z.number().int().min(1).max(12) }),
+  booking: z.object({ slot_step_min: z.number().int().min(5).max(120), min_notice_hours: z.number().min(0).max(720), max_days_ahead: z.number().int().min(1).max(365), hold_minutes: z.number().int().min(5).max(120), pix_expiration_minutes: z.number().int().min(30).max(1440), max_installments: z.number().int().min(1).max(12), auto_accept: z.boolean().default(false) }),
   payment_methods: z.object({ pix: z.boolean(), card: z.boolean(), cash: z.boolean() }),
   pix_manual: z.object({ enabled: z.boolean(), key: z.string().trim().max(80), key_type: z.enum(['cpf', 'cnpj', 'phone', 'email', 'random']), holder: z.string().trim().max(60), city: z.string().trim().max(40) }),
   policy: z.object({ text: z.string().min(10).max(3000) }),

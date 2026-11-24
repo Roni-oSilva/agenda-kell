@@ -88,6 +88,10 @@ export async function createBooking(i: CreateInput) {
   }
   await audit(i.actor, 'criar_agendamento', 'booking', b.id, { start: b.start_at });
   if (b.status === 'confirmado') await queueConfirmation(b.id);
+  else if (b.status === 'aguardando_confirmacao' && i.actor === 'cliente' && !needsPayment && settings.booking.auto_accept && !(service.deposit_required && deposit > 0)) {
+    const ok = await setStatus(b.id, 'confirmado', { by: 'automatico' }); // aceite automático (configurável)
+    return { booking: ok, needsPayment, customer };
+  }
   return { booking: b, needsPayment, customer };
 }
 

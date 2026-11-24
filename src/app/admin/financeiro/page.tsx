@@ -21,7 +21,7 @@ export default function Financeiro() {
   const br = (p: string) => p.length === 7 ? p.split('-').reverse().join('/') : p.split('-').reverse().join('/');
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-semibold text-rose-600">Financeiro</h1>
+      <h1 className="font-display text-4xl font-semibold text-rose-600">Financeiro</h1>
       <Card className="flex flex-wrap items-end gap-2">
         <Field label="De"><input type="date" className={inputCls} value={f.from} onChange={(e) => setF({ ...f, from: e.target.value })} /></Field>
         <Field label="Até"><input type="date" className={inputCls} value={f.to} onChange={(e) => setF({ ...f, to: e.target.value })} /></Field>

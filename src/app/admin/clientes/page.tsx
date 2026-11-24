@@ -30,7 +30,7 @@ export default function Clientes() {
   const { data, error } = useApi<{ customers: C[] }>(`/api/admin/customers?q=${encodeURIComponent(qq)}`);
   return (
     <div className="space-y-3">
-      <h1 className="text-3xl font-semibold text-rose-600">Clientes</h1>
+      <h1 className="font-display text-4xl font-semibold text-rose-600">Clientes</h1>
       <input className={inputCls} placeholder="Buscar por nome ou WhatsApp" value={q} onChange={(e) => setQ(e.target.value)} />
       <Msg error={error} />
       {data?.customers.map((c) => (

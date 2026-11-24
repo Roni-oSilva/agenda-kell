@@ -4,13 +4,13 @@ import { api, Btn, Card, Field, inputCls, Msg, useApi } from '@/lib/client';
 
 type S = {
   studio: { name: string; whatsapp_contact: string };
-  booking: { slot_step_min: number; min_notice_hours: number; max_days_ahead: number; hold_minutes: number; pix_expiration_minutes: number; max_installments: number };
+  booking: { slot_step_min: number; min_notice_hours: number; max_days_ahead: number; hold_minutes: number; pix_expiration_minutes: number; max_installments: number; auto_accept: boolean };
   payment_methods: { pix: boolean; card: boolean; cash: boolean };
   pix_manual: { enabled: boolean; key: string; key_type: 'cpf' | 'cnpj' | 'phone' | 'email' | 'random'; holder: string; city: string };
   policy: { text: string };
   whatsapp: { enabled: boolean; confirmation: boolean; reminder_24h: boolean; reminder_2h: boolean; waitlist: boolean; followup: boolean; language: string; templates: Record<string, string> };
 };
-const BOOK: [keyof S['booking'], string][] = [['slot_step_min', 'Intervalo entre horários (min)'], ['min_notice_hours', 'Antecedência mínima (horas)'], ['max_days_ahead', 'Limite de dias futuros'], ['hold_minutes', 'Reserva temporária (min)'], ['pix_expiration_minutes', 'Validade do PIX (min, mín. 30)'], ['max_installments', 'Parcelas máximas no cartão']];
+const BOOK: [Exclude<keyof S['booking'], 'auto_accept'>, string][] = [['slot_step_min', 'Intervalo entre horários (min)'], ['min_notice_hours', 'Antecedência mínima (horas)'], ['max_days_ahead', 'Limite de dias futuros'], ['hold_minutes', 'Reserva temporária (min)'], ['pix_expiration_minutes', 'Validade do PIX (min, mín. 30)'], ['max_installments', 'Parcelas máximas no cartão']];
 const TOGGLES: [keyof S['whatsapp'], string][] = [['enabled', 'Automações de WhatsApp ativas'], ['confirmation', 'Confirmação de agendamento'], ['reminder_24h', 'Lembrete 24h antes'], ['reminder_2h', 'Lembrete 2h antes'], ['waitlist', 'Aviso de vaga (lista de espera)'], ['followup', 'Convite de retorno/manutenção']];
 
 export default function Config() {
@@ -21,7 +21,7 @@ export default function Config() {
   const save = async (key: keyof S) => { setMsg(''); setOk(''); try { await api('/api/admin/settings', { method: 'PUT', json: { key, value: s[key] } }); setOk('Salvo.'); } catch (e) { setMsg((e as Error).message); } };
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-semibold text-rose-600">Configurações</h1>
+      <h1 className="font-display text-4xl font-semibold text-rose-600">Configurações</h1>
       <Msg error={msg} ok={ok} />
       <Card className="space-y-2"><h2 className="font-semibold">Integrações (credenciais ficam só no servidor)</h2>
         <ul className="space-y-1 text-sm">{data && Object.entries(data.integrations).map(([k, v]) => <li key={k} className="flex items-center gap-2"><span className={`h-2.5 w-2.5 rounded-full ${v ? 'bg-emerald-500' : 'bg-amber-400'}`} />{k}: {v ? 'configurado' : 'pendente'}</li>)}</ul></Card>
@@ -41,6 +41,7 @@ export default function Config() {
         <Btn onClick={() => save('pix_manual')}>Salvar PIX</Btn></Card>
       <Card className="space-y-3"><h2 className="font-semibold">Regras de agendamento</h2>
         <div className="grid gap-3 sm:grid-cols-2">{BOOK.map(([k, l]) => <Field key={k} label={l}><input type="number" className={inputCls} value={s.booking[k]} onChange={(e) => setS({ ...s, booking: { ...s.booking, [k]: +e.target.value } })} /></Field>)}</div>
+        <label className="flex items-start gap-2 text-sm"><input type="checkbox" className="mt-0.5 h-5 w-5 accent-rose-600" checked={s.booking.auto_accept} onChange={(e) => setS({ ...s, booking: { ...s.booking, auto_accept: e.target.checked } })} /><span><b>Aceitar automaticamente</b> os agendamentos que não exigem sinal (sem isso, você aprova um a um na tela Início).</span></label>
         <Btn onClick={() => save('booking')}>Salvar</Btn></Card>
       <Card className="space-y-3"><h2 className="font-semibold">Formas de pagamento disponíveis</h2>
         {([['pix', 'PIX'], ['card', 'Cartão de crédito/débito'], ['cash', 'Dinheiro presencial']] as const).map(([k, l]) => <label key={k} className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-5 w-5" checked={s.payment_methods[k]} onChange={(e) => setS({ ...s, payment_methods: { ...s.payment_methods, [k]: e.target.checked } })} />{l}</label>)}

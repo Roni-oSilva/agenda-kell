@@ -21,7 +21,7 @@ export default function Disponibilidade() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-3xl font-semibold text-rose-600">Horários de funcionamento</h1>
+      <h1 className="font-display text-4xl font-semibold text-rose-600">Horários de funcionamento</h1>
       <Msg error={msg || error} ok={ok} />
       <Card className="space-y-2">
         {hours.map((h, i) => (
