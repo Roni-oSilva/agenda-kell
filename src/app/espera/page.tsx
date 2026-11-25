@@ -3,6 +3,7 @@ import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { api, Btn, Card, Field, inputCls, Msg, useApi } from '@/lib/client';
+import { isSunday } from '@/lib/time';
 
 function Form() {
   const qs = useSearchParams();
@@ -26,7 +27,7 @@ function Form() {
         <Field label="WhatsApp (com DDD)"><input required inputMode="tel" className={inputCls} value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} /></Field>
         <Field label="Procedimento"><select required className={inputCls} value={f.serviceId} onChange={(e) => setF({ ...f, serviceId: e.target.value })}><option value="">Selecione…</option>{data?.services.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></Field>
         <div className="space-y-2"><span className="block text-sm font-medium text-nude-700">Datas preferidas</span>
-          {f.dates.map((d, i) => <input key={i} type="date" required={i === 0} className={inputCls} value={d} onChange={(e) => setF({ ...f, dates: f.dates.map((x, j) => (j === i ? e.target.value : x)) })} />)}
+          {f.dates.map((d, i) => <input key={i} type="date" required={i === 0} className={inputCls} value={d} onChange={(e) => { const v = e.target.value; if (v && isSunday(v)) { setErr('Não atendemos aos domingos. Escolha outra data.'); return; } setErr(''); setF({ ...f, dates: f.dates.map((x, j) => (j === i ? v : x)) }); }} />)}
           {f.dates.length < 10 && <Btn type="button" variant="ghost" onClick={() => setF({ ...f, dates: [...f.dates, ''] })}>+ outra data</Btn>}</div>
         <div><span className="mb-1 block text-sm font-medium text-nude-700">Períodos preferidos</span>
           <div className="flex gap-2">{[['manha', 'Manhã'], ['tarde', 'Tarde'], ['noite', 'Noite']].map(([k, l]) => <button key={k} type="button" onClick={() => toggle(k)} className={`min-h-11 flex-1 rounded-xl border text-sm ${f.periods.includes(k) ? 'border-rose-500 bg-rose-500 text-white' : 'border-rose-200 text-rose-700'}`}>{l}</button>)}</div></div>

@@ -1,4 +1,4 @@
-import { addDays, hmToMin, minToHm, toInstant, todayBR, weekdayOf } from './time';
+import { addDays, hmToMin, isSunday, minToHm, toInstant, todayBR, weekdayOf } from './time';
 
 export type WeeklyHour = { weekday: number; active: boolean; open_time: string; close_time: string };
 export type Break = { weekday: number | null; start_time: string; end_time: string };
@@ -32,6 +32,7 @@ export function computeDay(date: string, durationMin: number, cfg: AvailabilityC
   const today = todayBR(now);
   if (date < today) return { status: 'past', slots: [], taken: [] };
   if (date > addDays(today, cfg.maxDaysAhead)) return { status: 'out_of_range', slots: [], taken: [] };
+  if (isSunday(date)) return { status: 'closed', slots: [], taken: [] }; // domingo nunca abre
   const hours = cfg.weeklyHours.find((h) => h.weekday === weekdayOf(date));
   if (!hours || !hours.active) return { status: 'closed', slots: [], taken: [] };
   const un = unavailableRanges(date, cfg);

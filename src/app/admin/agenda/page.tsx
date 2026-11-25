@@ -6,6 +6,7 @@ import { shiftMonth } from '@/components/Calendar';
 
 type B = { id: string; public_code: string; service_name: string; start_at: string; end_at: string; status: string; total_cents: number; paid_cents: number; deposit_cents: number; notes: string | null; customers: { id: string; name: string; phone_e164: string }; payments?: { id: string; status: string; kind: string; amount_cents: number; method: string; provider: string }[] };
 const WD = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+const WORK = WD.slice(1); // sem domingo
 const STATUS_COLOR: Record<string, string> = { confirmado: 'bg-green-100 text-green-800', aguardando_pagamento: 'bg-amber-100 text-amber-800', aguardando_confirmacao: 'bg-amber-100 text-amber-800', em_atendimento: 'bg-blue-100 text-blue-800', concluido: 'bg-nude-100 text-nude-700', cancelado: 'bg-red-100 text-red-700', nao_compareceu: 'bg-red-100 text-red-700' };
 
 function BookingRow({ b, reload }: { b: B; reload: () => void }) {
@@ -94,9 +95,10 @@ export default function Agenda() {
   const range = view === 'dia' ? [day, day] : view === 'semana' ? [mon, addDays(mon, 6)] : [`${month}-01`, addDays(`${shiftMonth(month, 1)}-01`, -1)];
   const { data, error, reload } = useApi<{ bookings: B[] }>(`/api/admin/bookings?from=${range[0]}&to=${range[1]}`);
   const list = data?.bookings ?? [];
-  const step = (n: number) => setDay(view === 'mes' ? `${shiftMonth(month, n)}-01` : addDays(day, n * (view === 'semana' ? 7 : 1)));
+  const step = (n: number) => setDay(view === 'mes' ? `${shiftMonth(month, n)}-01` : view === 'semana' ? addDays(day, n * 7) : addDays(day, weekdayOf(addDays(day, n)) === 0 ? n * 2 : n));
   const byDay = (d: string) => list.filter((b) => dateOfInstant(b.start_at) === d);
-  const days = view === 'semana' ? Array.from({ length: 7 }, (_, i) => addDays(mon, i)) : [day];
+  const days = view === 'semana' ? Array.from({ length: 6 }, (_, i) => addDays(mon, i)) : [day];
+  const monthDays = Array.from({ length: view === 'mes' ? +range[1].slice(8) : 0 }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`).filter((d) => weekdayOf(d) !== 0);
 
   return (
     <div className="space-y-4">
@@ -109,10 +111,10 @@ export default function Agenda() {
       {showNew && <NewBooking done={() => { reload(); setShowNew(false); }} />}
       <Msg error={error} />
       {view === 'mes' ? (
-        <Card><div className="grid grid-cols-7 gap-1 text-center text-xs">
-          {WD.map((w) => <div key={w} className="text-nude-700">{w}</div>)}
-          {Array(weekdayOf(`${month}-01`)).fill(0).map((_, i) => <div key={`b${i}`} />)}
-          {Array.from({ length: +range[1].slice(8) }, (_, i) => `${month}-${String(i + 1).padStart(2, '0')}`).map((d) => {
+        <Card><div className="grid grid-cols-6 gap-1 text-center text-xs">
+          {WORK.map((w) => <div key={w} className="text-nude-700">{w}</div>)}
+          {Array(monthDays.length ? weekdayOf(monthDays[0]) - 1 : 0).fill(0).map((_, i) => <div key={`b${i}`} />)}
+          {monthDays.map((d) => {
             const n = byDay(d).filter((b) => !['cancelado', 'nao_compareceu'].includes(b.status)).length;
             return <button key={d} onClick={() => { setDay(d); setView('dia'); }} className={`min-h-14 rounded-xl border p-1 ${n ? 'border-rose-300 bg-rose-50' : 'border-nude-100'} ${d === todayBR() ? 'ring-2 ring-rose-400' : ''}`}><div>{+d.slice(8)}</div>{n > 0 && <div className="text-rose-600">{n} atend.</div>}</button>;
           })}

@@ -44,6 +44,10 @@ describe('availability', () => {
     expect(r.slots).toEqual(['08:00', '15:00', '18:00']);
     expect(r.taken).toEqual(['13:00']);
   });
+  it('domingo nunca abre, mesmo que alguém ative o dia na configuração', () => {
+    const openSunday = { ...cfg, weeklyHours: [0, 1, 2, 3, 4, 5, 6].map((d) => wh(d, true)) };
+    expect(computeDay('2026-11-22', 60, openSunday, [], now).status).toBe('closed');
+  });
   it('dia fechado, bloqueado, passado e fora do limite', () => {
     expect(computeDay('2026-11-22', 60, cfg, [], now).status).toBe('closed');
     expect(computeDay(DAY, 60, { ...cfg, blocks: [{ date_from: DAY, date_to: DAY, start_time: null, end_time: null }] }, [], now).status).toBe('blocked');

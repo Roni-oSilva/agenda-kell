@@ -27,9 +27,11 @@ export const POST = handle(async (req: NextRequest) => {
   let error;
   switch (a.action) {
     case 'hours':
+      a.rows = a.rows.map((r) => (r.weekday === 0 ? { ...r, active: false } : r)); // domingo sempre fechado
       for (const r of a.rows) if (r.close_time <= r.open_time) throw new HttpError(400, 'Fechamento deve ser depois da abertura.');
       ({ error } = await db().from('weekly_hours').upsert(a.rows)); break;
     case 'slots': {
+      if (a.weekday === 0) throw new HttpError(400, 'Não atendemos aos domingos.');
       const times = [...new Set(a.times.map((t) => t.slice(0, 5)))];
       await db().from('weekly_slots').delete().eq('weekday', a.weekday);
       if (times.length) ({ error } = await db().from('weekly_slots').insert(times.map((t) => ({ weekday: a.weekday, slot_time: t }))));

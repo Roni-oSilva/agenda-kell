@@ -1,6 +1,6 @@
 import 'server-only';
 import { db, getSettings, HttpError, slotsFor, audit } from './server';
-import { toInstant, normalizePhone, dateOfInstant } from './time';
+import { toInstant, normalizePhone, dateOfInstant, isSunday } from './time';
 import { isValidCpf } from './cpf';
 import { queueConfirmation } from './notify';
 
@@ -55,6 +55,7 @@ export type CreateInput = {
 };
 
 export async function createBooking(i: CreateInput) {
+  if (isSunday(i.date)) throw new HttpError(400, 'Não atendemos aos domingos.');
   await db().rpc('expire_holds'); // libera reservas temporárias vencidas antes de checar conflito
   const settings = await getSettings();
   const { data: svc } = await db().from('services').select('*').eq('id', i.serviceId).maybeSingle();
@@ -118,6 +119,7 @@ export async function setStatus(id: string, status: string, o: { reason?: string
 }
 
 export async function reschedule(id: string, date: string, time: string, by: string) {
+  if (isSunday(date)) throw new HttpError(400, 'Não atendemos aos domingos.');
   const { data: cur } = await db().from('bookings').select('*').eq('id', id).single();
   if (!cur) throw new HttpError(404, 'Agendamento não encontrado');
   const start = toInstant(date, time), end = new Date(start.getTime() + cur.duration_min * 60_000);

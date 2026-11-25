@@ -22,9 +22,10 @@ export default function Disponibilidade() {
   return (
     <div className="space-y-4">
       <h1 className="font-display text-4xl font-semibold text-rose-600">Horários de funcionamento</h1>
+      <p className="text-sm text-nude-700">Domingo é sempre fechado.</p>
       <Msg error={msg || error} ok={ok} />
       <Card className="space-y-2">
-        {hours.map((h, i) => (
+        {hours.map((h, i) => h.weekday !== 0 && (
           <div key={h.weekday} className="space-y-2 border-b border-rose-50 pb-3 text-sm last:border-0">
             <label className="flex w-40 items-center gap-2 font-medium"><input type="checkbox" className="h-5 w-5 accent-rose-600" checked={h.active} onChange={(e) => setHours(hours.map((x, j) => (j === i ? { ...x, active: e.target.checked } : x)))} />{WD[h.weekday]}{!h.active && <span className="text-xs font-normal text-nude-700">(fechado)</span>}</label>
             {h.active && (
@@ -44,7 +45,7 @@ export default function Disponibilidade() {
       <Card className="space-y-2"><h2 className="font-semibold">Intervalos e pausas (almoço…)</h2>
         {data?.breaks.map((b) => <div key={b.id} className="flex items-center justify-between text-sm"><span>{b.label ?? 'Pausa'} · {b.weekday === null ? 'todos os dias' : WD[b.weekday]} · {b.start_time.slice(0, 5)}–{b.end_time.slice(0, 5)}</span><Btn variant="danger" onClick={() => run(() => post({ action: 'delBreak', id: b.id }))}>Remover</Btn></div>)}
         <div className="flex flex-wrap items-end gap-2">
-          <Field label="Dia"><select className={`${inputCls} !w-auto`} value={br.weekday} onChange={(e) => setBr({ ...br, weekday: e.target.value })}><option value="">Todos</option>{WD.map((w, i) => <option key={i} value={i}>{w}</option>)}</select></Field>
+          <Field label="Dia"><select className={`${inputCls} !w-auto`} value={br.weekday} onChange={(e) => setBr({ ...br, weekday: e.target.value })}><option value="">Todos</option>{WD.map((w, i) => i > 0 && <option key={i} value={i}>{w}</option>)}</select></Field>
           <Field label="Início"><input type="time" className={`${inputCls} !w-28`} value={br.start_time} onChange={(e) => setBr({ ...br, start_time: e.target.value })} /></Field>
           <Field label="Fim"><input type="time" className={`${inputCls} !w-28`} value={br.end_time} onChange={(e) => setBr({ ...br, end_time: e.target.value })} /></Field>
           <Field label="Nome"><input className={`${inputCls} !w-32`} value={br.label} onChange={(e) => setBr({ ...br, label: e.target.value })} /></Field>

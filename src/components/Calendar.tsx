@@ -3,7 +3,7 @@ import { addDays, todayBR, weekdayOf } from '@/lib/time';
 import { IconBack, IconChevron } from './Icons';
 
 export type DayInfo = { status: string; count: number; taken?: number };
-const NAMES = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb'];
+const NAMES = ['seg', 'ter', 'qua', 'qui', 'sex', 'sáb']; // sem domingo: não há atendimento
 const MONTHS = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
 
 export function shiftMonth(m: string, delta: number) {
@@ -15,10 +15,10 @@ export default function Calendar({ month, days, selected, onSelect, onMonth }: {
   month: string; days: Record<string, DayInfo> | null; selected: string | null; onSelect: (d: string) => void; onMonth: (m: string) => void;
 }) {
   const first = `${month}-01`;
-  const lead = weekdayOf(first);
   const last = addDays(`${shiftMonth(month, 1)}-01`, -1);
-  const cells: (string | null)[] = Array(lead).fill(null);
-  for (let d = first; d <= last; d = addDays(d, 1)) cells.push(d);
+  const days0: string[] = [];
+  for (let d = first; d <= last; d = addDays(d, 1)) if (weekdayOf(d) !== 0) days0.push(d);
+  const cells: (string | null)[] = [...Array(weekdayOf(days0[0]) - 1).fill(null), ...days0];
   const legend: Record<string, string> = { full: 'Sem horários', blocked: 'Bloqueado', closed: 'Fechado', past: 'Passado', out_of_range: 'Fora do prazo' };
   const today = todayBR();
   const nav = 'grid h-11 w-11 place-items-center rounded-full border border-rose-200 bg-white/70 text-rose-600 transition hover:bg-rose-50 hover:scale-105 active:scale-95';
@@ -29,8 +29,8 @@ export default function Calendar({ month, days, selected, onSelect, onMonth }: {
         <h3 key={month} className="animate-fadeIn text-2xl font-semibold capitalize text-rose-600">{MONTHS[+month.slice(5) - 1]} <span className="font-normal text-nude-700">{month.slice(0, 4)}</span></h3>
         <button type="button" aria-label="Próximo mês" onClick={() => onMonth(shiftMonth(month, 1))} className={nav}><IconChevron width={16} height={16} /></button>
       </div>
-      <div className="grid grid-cols-7 gap-1 text-center text-[11px] font-medium uppercase tracking-widest text-nude-700">{NAMES.map((n) => <div key={n}>{n}</div>)}</div>
-      <div key={month} className="mt-2 grid animate-fadeIn grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-6 gap-1 text-center text-[11px] font-medium uppercase tracking-widest text-nude-700">{NAMES.map((n) => <div key={n}>{n}</div>)}</div>
+      <div key={month} className="mt-2 grid animate-fadeIn grid-cols-6 gap-1.5">
         {cells.map((d, i) => {
           if (!d) return <div key={i} />;
           const info = days?.[d];

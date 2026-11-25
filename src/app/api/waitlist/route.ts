@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { db, handle, HttpError } from '@/lib/server';
-import { normalizePhone } from '@/lib/time';
+import { isSunday, normalizePhone } from '@/lib/time';
 
 const Body = z.object({
   name: z.string().trim().min(3).max(120), phone: z.string().min(10).max(20), serviceId: z.string().uuid(),
@@ -13,6 +13,7 @@ export const POST = handle(async (req: NextRequest) => {
   const b = Body.parse(await req.json());
   const phone = normalizePhone(b.phone);
   if (!phone) throw new HttpError(400, 'WhatsApp inválido.');
+  if (b.dates.some(isSunday)) throw new HttpError(400, 'Não atendemos aos domingos. Escolha outra data.');
   const { error } = await db().from('waitlist').insert({ name: b.name, phone_e164: phone, service_id: b.serviceId, preferred_dates: b.dates, periods: b.periods, whatsapp_consent: true });
   if (error) throw error;
   return NextResponse.json({ ok: true }, { status: 201 });
