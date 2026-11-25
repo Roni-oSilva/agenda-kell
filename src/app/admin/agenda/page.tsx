@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api, Btn, Card, Field, inputCls, METHOD_LABEL, Msg, STATUS_LABEL, useApi } from '@/lib/client';
 import { addDays, brl, dateOfInstant, fmtTimeBR, todayBR, weekdayOf } from '@/lib/time';
 import { shiftMonth } from '@/components/Calendar';
@@ -56,6 +56,7 @@ function BookingRow({ b, reload }: { b: B; reload: () => void }) {
               <Field label="Cancelar (registrar motivo)"><input className={inputCls} value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Motivo" /></Field>
               <Btn variant="danger" disabled={reason.length < 3} onClick={() => confirm('Cancelar este agendamento? O histórico financeiro será mantido.') && act(() => patch({ status: 'cancelado', reason }), 'Cancelado e registrado.')}>Cancelar</Btn>
             </div>)}
+          {b.status === 'cancelado' && b.paid_cents === 0 && <Btn variant="danger" onClick={() => confirm('Excluir este agendamento de vez? Isso não pode ser desfeito.') && act(() => api(`/api/admin/bookings/${b.id}`, { method: 'DELETE' }), 'Excluído.')}>Excluir de vez</Btn>}
           <Msg error={msg} ok={ok} />
         </div>
       )}
@@ -86,6 +87,8 @@ export default function Agenda() {
   const [view, setView] = useState<'dia' | 'semana' | 'mes'>('dia');
   const [day, setDay] = useState(todayBR());
   const [showNew, setShowNew] = useState(false);
+  // abre direto no dia vindo do Início (?dia=AAAA-MM-DD)
+  useEffect(() => { const d = new URLSearchParams(window.location.search).get('dia'); if (d && /^d{4}-d{2}-d{2}$/.test(d)) setDay(d); }, []);
   const mon = addDays(day, -((weekdayOf(day) + 6) % 7));
   const month = day.slice(0, 7);
   const range = view === 'dia' ? [day, day] : view === 'semana' ? [mon, addDays(mon, 6)] : [`${month}-01`, addDays(`${shiftMonth(month, 1)}-01`, -1)];

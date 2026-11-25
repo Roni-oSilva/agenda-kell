@@ -15,12 +15,14 @@ export const GET = handle(async () => {
   const weekEnd = toInstant(addDays(today, 8), '00:00').toISOString(), monthStart = toInstant(`${today.slice(0, 7)}-01`, '00:00').toISOString();
   const sel = '*, customers(id,name,phone_e164), payments(id,status,kind,amount_cents,method,provider)';
 
-  const [pend, todays, week, paid, future] = await Promise.all([
+  const [pend, todays, week, paid, future, upcoming, history] = await Promise.all([
     db().from('bookings').select(sel).in('status', ['aguardando_pagamento', 'aguardando_confirmacao']).gte('start_at', new Date(Date.now() - 86400_000).toISOString()).order('created_at', { ascending: true }).limit(200),
     db().from('bookings').select(sel).gte('start_at', dayStart).lt('start_at', dayEnd).not('status', 'in', '(cancelado,nao_compareceu)').order('start_at'),
     db().from('bookings').select('id', { count: 'exact', head: true }).eq('status', 'confirmado').gte('start_at', dayStart).lt('start_at', weekEnd),
     db().from('payments').select('amount_cents').eq('status', 'aprovado').gte('paid_at', monthStart),
     db().from('bookings').select('total_cents,paid_cents').in('status', ['confirmado', 'em_atendimento']).gte('start_at', dayStart),
+    db().from('bookings').select(sel).in('status', ['confirmado', 'em_atendimento']).gte('start_at', dayStart).order('start_at').limit(60),
+    db().from('bookings').select(sel).in('status', ['cancelado', 'concluido', 'nao_compareceu']).order('updated_at', { ascending: false }).limit(60),
   ]);
 
   const toConfirm: unknown[] = [], waitingPix: unknown[] = [], toAccept: unknown[] = [];
@@ -32,7 +34,7 @@ export const GET = handle(async () => {
     else toAccept.push(b);
   }
   return NextResponse.json({
-    toConfirm, waitingPix, toAccept, today: todays.data ?? [],
+    toConfirm, waitingPix, toAccept, today: todays.data ?? [], upcoming: upcoming.data ?? [], history: history.data ?? [],
     weekCount: week.count ?? 0,
     monthReceivedCents: (paid.data ?? []).reduce((a, p) => a + p.amount_cents, 0),
     receivableCents: (future.data ?? []).reduce((a, b) => a + Math.max(0, b.total_cents - b.paid_cents), 0),
